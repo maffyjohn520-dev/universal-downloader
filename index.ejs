@@ -2,40 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Universal Downloader</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            background-color: #f9f9f9;
-        }
-        h1 { text-align: center; }
-        form { margin-top: 30px; text-align: center; }
-        input[type="text"] {
-            width: 80%;
-            padding: 10px;
-            font-size: 16px;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            margin-left: 10px;
-        }
-        .message { margin-top: 20px; text-align: center; font-weight: bold; }
-        a { color: #007bff; text-decoration: none; }
+        body { background: #f7f7f7; font-family: Arial, sans-serif; }
+        .container { max-width: 600px; margin-top: 50px; }
+        .download-link { margin-top: 20px; }
     </style>
 </head>
 <body>
-    <h1>Universal Downloader</h1>
-    <form action="/download" method="POST">
-        <input type="text" name="url" placeholder="Paste URL here" required>
-        <button type="submit">Download</button>
-    </form>
+    <div class="container text-center">
+        <h1>Universal Downloader</h1>
+        <p>Paste your file/video URL below</p>
+        <form action="/download" method="POST">
+            <input type="url" name="url" class="form-control mb-2" placeholder="Enter URL" required>
+            <button type="submit" class="btn btn-primary w-100">Download</button>
+        </form>
 
-    <% if (message) { %>
-        <div class="message"><%= message %></div>
-    <% } %>
+        <% if (file) { %>
+            <div class="download-link alert alert-success mt-3">
+                ✅ Downloaded: 
+                <a href="/downloads/<%= file %>" target="_blank"><%= file %></a>
+            </div>
+        <% } %>
+    </div>
 </body>
 </html>
