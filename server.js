@@ -1,3 +1,4 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const express = require('express');
 const path = require('path');
 const fs = require('fs-extra');
@@ -5,7 +6,11 @@ const ytdl = require('ytdl-core');
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+});
 
 // Set up EJS for HTML rendering
 app.set('view engine', 'ejs');
