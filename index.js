@@ -1,64 +1,68 @@
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'; // Fix SSL issues
-
-const fs = require('fs-extra');
+const express = require('express');
 const path = require('path');
-const axios = require('axios');
+const fs = require('fs-extra');
 const ytdl = require('ytdl-core');
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-const url = process.argv[2];
-if (!url) {
-  console.error('❌ Please provide a URL!');
-  process.exit(1);
-}
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-const downloadFolder = path.join(__dirname, 'downloads');
-fs.ensureDirSync(downloadFolder);
+// Set up EJS
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-async function downloadFile(fileUrl) {
-  try {
-    const fileName = path.basename(fileUrl.split('?')[0]);
-    const filePath = path.join(downloadFolder, fileName);
+// Serve static files
+app.use('/downloads', express.static(path.join(__dirname, 'downloads')));
+app.use(express.urlencoded({ extended: true }));
 
-    const response = await axios({
-      method: 'GET',
-      url: fileUrl,
-      responseType: 'stream',
-    });
+// Home page
+app.get('/', (req, res) => {
+    res.render('index', { message: null });
+});
 
-    response.data.pipe(fs.createWriteStream(filePath))
-      .on('finish', () => console.log(`✅ Downloaded: ${fileName}`))
-      .on('error', (err) => console.error('❌ Error:', err));
-  } catch (err) {
-    console.error('❌ Download failed:', err.message);
-  }
-}
+// Handle download requests
+app.post('/download', async (req, res) => {
+    const url = req.body.url;
+    if (!url) return res.render('index', { message: '❌ Please provide a URL' });
 
-async function downloadYouTube(videoUrl) {
-  try {
-    if (!ytdl.validateURL(videoUrl)) {
-      console.error('❌ Invalid YouTube URL!');
-      return;
+    const downloadsDir = path.join(__dirname, 'downloads');
+    await fs.ensureDir(downloadsDir);
+
+    try {
+        if (ytdl.validateURL(url)) {
+            const info = await ytdl.getInfo(url);
+            const title = info.videoDetails.title.replace(/[\/\\?%*:|"<>]/g, '_');
+            const filePath = path.join(downloadsDir, title + '.mp4');
+
+            ytdl(url)
+                .pipe(fs.createWriteStream(filePath))
+                .on('finish', () => {
+                    res.render('index', { message: `✅ Downloaded YouTube video: <a href="/downloads/${title}.mp4" target="_blank">${title}.mp4</a>` });
+                });
+
+        } else {
+            let fileName;
+            try {
+                fileName = path.basename(new URL(url).pathname);
+            } catch {
+                fileName = `video_${Date.now()}.mp4`;
+            }
+            if (!fileName.includes('.')) fileName += '.mp4';
+            const filePath = path.join(downloadsDir, fileName);
+
+            const response = await fetch(url);
+            const buffer = await response.arrayBuffer();
+            await fs.writeFile(filePath, Buffer.from(buffer));
+
+            res.render('index', { message: `✅ Downloaded file: <a href="/downloads/${fileName}" target="_blank">${fileName}</a>` });
+        }
+    } catch (err) {
+        console.error(err);
+        res.render('index', { message: `❌ Download failed: ${err.message}` });
     }
+});
 
-    const info = await ytdl.getInfo(videoUrl);
-    const title = info.videoDetails.title.replace(/[\/\\?%*:|"<>]/g, '-');
-    const filePath = path.join(downloadFolder, `${title}.mp4`);
-
-    ytdl(videoUrl)
-      .pipe(fs.createWriteStream(filePath))
-      .on('finish', () => console.log(`✅ YouTube Downloaded: ${title}.mp4`))
-      .on('error', (err) => console.error('❌ Error:', err));
-  } catch (err) {
-    console.error('❌ YouTube download failed:', err.message);
-  }
-}
-
-async function main() {
-  if (ytdl.validateURL(url)) {
-    await downloadYouTube(url);
-  } else {
-    await downloadFile(url);
-  }
-}
-
-main();
+// Start server
+app.listen(PORT, () => {
+    console.log(`🚀 Server running at http://localhost:${PORT}`);
+});
