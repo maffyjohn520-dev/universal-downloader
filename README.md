@@ -46,4 +46,4 @@ For deployment, you can use services like Heroku, Vercel, or any cloud provider 
 ## Author
 * [maffyjohn520-dev](https://github.com/maffyjohn520-dev)  
 
-For more details, refer to the official GitHub repository. 
+For more details, refer to the official GitHub repository.
